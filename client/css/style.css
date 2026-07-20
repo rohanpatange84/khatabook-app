@@ -91,11 +91,13 @@ body::before {
    LAYOUT
 ============================================= */
 .container {
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
   padding: 0 16px;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 .page-center {
@@ -103,7 +105,9 @@ body::before {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 24px 16px;
+  padding: 16px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* =============================================
@@ -115,8 +119,10 @@ body::before {
   border-radius: var(--radius-xl);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  padding: 40px;
+  padding: clamp(20px, 5vw, 40px);
   box-shadow: var(--shadow-lg);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .card-sm {
@@ -316,19 +322,23 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 ============================================= */
 .pin-container {
   display: flex;
-  gap: 14px;
+  gap: clamp(6px, 3vw, 14px);
   justify-content: center;
-  margin: 32px 0;
+  margin: 24px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pin-box {
-  width: 68px;
-  height: 80px;
+  flex: 1;
+  max-width: 64px;
+  min-width: 44px;
+  height: clamp(54px, 16vw, 76px);
   background: rgba(255,255,255,0.05);
   border: 2px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   text-align: center;
-  font-size: 2rem;
+  font-size: clamp(1.4rem, 5vw, 1.875rem);
   font-weight: 700;
   color: var(--text-primary);
   font-family: inherit;
@@ -337,6 +347,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   caret-color: var(--accent-green);
   -webkit-text-security: disc;
   text-security: disc;
+  box-sizing: border-box;
 }
 .pin-box:focus {
   border-color: var(--accent-green);
