@@ -228,7 +228,7 @@ function renderLangSelector(containerId) {
       <span style="margin-right:6px; font-size:0.9rem;">🌐</span>
       <select id="langSelect" onchange="setLanguage(this.value)" style="background:transparent; border:none; color:var(--text-primary); font-family:inherit; font-weight:600; font-size:0.8125rem; outline:none; cursor:pointer;">
         <option value="en" ${currentLang === 'en' ? 'selected' : ''} style="background:var(--bg-secondary); color:#fff;">English</option>
-        <option value="mr" ${currentLang === 'mr' ? 'selected' : ''} style="background:var(--bg-secondary); color:#fff;">मराठी (Marathi)</option>
+        <option value="mr" ${currentLang === 'mr' ? 'selected' : ''} style="background:var(--bg-secondary); color:#fff;">मराठी</option>
       </select>
     </div>
   `;
