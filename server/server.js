@@ -42,6 +42,7 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl: process.env.MONGO_URI,
+      dbName: 'khatabook',
       collectionName: 'sessions',
     }),
     cookie: {
