@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Set Up PIN — KhataBook</title>
+  <meta name="description" content="Set up your 4-digit security PIN for KhataBook" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📒</text></svg>" />
+  <style>
+    .step-dots {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border-color);
+    }
+    .dot.active { background: var(--accent-green); box-shadow: 0 0 8px rgba(0,212,170,0.5); }
+    .dot.done { background: var(--accent-green); opacity: 0.5; }
+    .strength-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border-color);
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-center">
+    <div class="container">
+      <div class="card animate-fade-in-up" style="max-width: 420px; margin: 0 auto; text-align: center;">
+
+        <!-- Top bar with language selector -->
+        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;" id="langContainer"></div>
+
+        <!-- Step dots -->
+        <div class="step-dots">
+          <div class="dot done"></div>
+          <div class="dot active"></div>
+          <div class="dot"></div>
+        </div>
+
+        <!-- User info (loaded dynamically) -->
+        <div id="userSection" style="margin-bottom: 28px;">
+          <div class="spinner" style="width:32px;height:32px;margin:0 auto 12px;"></div>
+        </div>
+
+        <!-- Title -->
+        <h1 style="font-size: 1.625rem; margin-bottom: 10px;" data-i18n="setupPinTitle">Set Your Secret PIN</h1>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 4px;" data-i18n="setupPinDesc">
+          Create a 4-digit PIN to secure your KhataBook.<br>
+          You'll need this every time you log in.
+        </p>
+
+        <!-- PIN Input -->
+        <div class="pin-container" id="pinContainer">
+          <input class="pin-box" id="pin1" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+          <input class="pin-box" id="pin2" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+          <input class="pin-box" id="pin3" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+          <input class="pin-box" id="pin4" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+        </div>
+
+        <!-- Confirm PIN section (appears after first PIN) -->
+        <div id="confirmSection" style="display:none;">
+          <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 4px;" data-i18n="confirmPinLabel">Confirm your PIN</p>
+          <div class="pin-container" id="confirmContainer">
+            <input class="pin-box" id="confirm1" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+            <input class="pin-box" id="confirm2" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+            <input class="pin-box" id="confirm3" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+            <input class="pin-box" id="confirm4" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+          </div>
+        </div>
+
+        <!-- Submit button -->
+        <button class="btn btn-primary" id="submitBtn" style="display:none;" onclick="submitPin()" data-i18n="submitPinBtn">
+          Set PIN & Continue →
+        </button>
+
+        <!-- Alert -->
+        <div class="alert alert-error" id="errorAlert" style="display:none; margin-top:16px;">
+          <span>⚠</span>
+          <span id="errorMsg">PINs do not match. Try again.</span>
+        </div>
+        <div class="alert alert-success" id="successAlert" style="display:none; margin-top:16px;">
+          <span>✓</span>
+          <span>PIN set successfully! Taking you to dashboard...</span>
+        </div>
+
+        <!-- Security note -->
+        <div style="margin-top: 28px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+          <p style="font-size: 0.8125rem; color: var(--text-muted); line-height: 1.6;" data-i18n="pinEncryptedNote">
+            🔒 Your PIN is encrypted with bcrypt and never stored in plain text.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/translations.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    renderLangSelector('langContainer');
+    let firstPin = '';
+    const pinInputs = [
+      document.getElementById('pin1'),
+      document.getElementById('pin2'),
+      document.getElementById('pin3'),
+      document.getElementById('pin4'),
+    ];
+    const confirmInputs = [
+      document.getElementById('confirm1'),
+      document.getElementById('confirm2'),
+      document.getElementById('confirm3'),
+      document.getElementById('confirm4'),
+    ];
+
+    // Load user info
+    (async () => {
+      const user = await getAuthUser();
+      if (!user) { window.location.replace('/index.html'); return; }
+      if (user.pinSet) { window.location.replace('/pin.html'); return; }
+
+      document.getElementById('userSection').innerHTML = `
+        <img src="${user.avatar}" alt="${user.name}" class="avatar avatar-lg" style="margin: 0 auto 12px; display:block;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D8ABC&color=fff'" />
+        <div style="font-weight:700; font-size:1rem;">${user.name}</div>
+        <div style="color:var(--text-secondary); font-size:0.8125rem;">${user.email}</div>
+      `;
+    })();
+
+    // Setup PIN input navigation
+    setupPinInputs(pinInputs, () => {
+      firstPin = pinInputs.map(i => i.value).join('');
+      document.getElementById('confirmSection').style.display = 'block';
+      document.getElementById('confirmSection').scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => confirmInputs[0].focus(), 300);
+    });
+
+    setupPinInputs(confirmInputs, () => {
+      document.getElementById('submitBtn').style.display = 'flex';
+      document.getElementById('submitBtn').focus();
+    });
+
+    async function submitPin() {
+      hideAlerts();
+      const confirmPin = confirmInputs.map(i => i.value).join('');
+
+      if (firstPin.length !== 4 || confirmPin.length !== 4) {
+        showError('Please fill all PIN digits.');
+        return;
+      }
+      if (firstPin !== confirmPin) {
+        showError('PINs do not match. Please try again.');
+        // Shake and clear confirm boxes
+        confirmInputs.forEach(i => { i.classList.add('error'); i.value = ''; });
+        setTimeout(() => confirmInputs.forEach(i => i.classList.remove('error')), 500);
+        confirmInputs[0].focus();
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Setting up...';
+
+      try {
+        const res = await fetch('/api/auth/setup-pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ pin: firstPin }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          sessionStorage.setItem('khatabook_pin_verified', 'true');
+          const success = document.getElementById('successAlert');
+          success.style.display = 'flex';
+          setTimeout(() => success.classList.add('show'), 10);
+          setTimeout(() => window.location.replace('/dashboard.html'), 1500);
+        } else {
+          showError(data.message || 'Failed to set PIN.');
+          btn.disabled = false;
+          btn.textContent = 'Set PIN & Continue →';
+        }
+      } catch (e) {
+        showError('Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Set PIN & Continue →';
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorAlert');
+      document.getElementById('errorMsg').textContent = msg;
+      el.style.display = 'flex';
+      setTimeout(() => el.classList.add('show'), 10);
+    }
+    function hideAlerts() {
+      document.getElementById('errorAlert').style.display = 'none';
+      document.getElementById('errorAlert').classList.remove('show');
+      document.getElementById('successAlert').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Contact — KhataBook</title>
+  <meta name="description" content="View and manage transactions with your contact on KhataBook" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📒</text></svg>" />
+  <style>
+    .sticky-balance {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .amount-input-wrapper {
+      position: relative;
+    }
+    .currency-symbol {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    #amountInput {
+      padding-left: 32px;
+    }
+    .delete-contact-btn {
+      background: rgba(255,75,110,0.1);
+      border: 1px solid rgba(255,75,110,0.25);
+      color: var(--accent-red);
+      border-radius: var(--radius-md);
+      padding: 8px 14px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition-fast);
+    }
+    .delete-contact-btn:hover {
+      background: rgba(255,75,110,0.2);
+    }
+    .running-balance {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Contact Header (sticky) -->
+  <div class="contact-header" id="contactHeader">
+    <a href="/dashboard.html" class="back-btn">←</a>
+    <div id="contactHeaderSpinner" style="display:flex;align-items:center;gap:12px;flex:1;">
+      <div class="spinner" style="width:28px;height:28px;margin:0;"></div>
+    </div>
+  </div>
+
+  <!-- Sticky Balance Bar -->
+  <div class="sticky-balance" id="stickyBalance" style="display:none;">
+    <div>
+      <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);" data-i18n="balanceLabel">Balance</div>
+      <div style="font-size:1.375rem;font-weight:900;" id="contactBalanceDisplay">₹0</div>
+      <div class="running-balance" id="balanceLabel">—</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div id="langContainer"></div>
+      <button class="delete-contact-btn" onclick="confirmDeleteContact()" data-i18n="delete">🗑 Delete</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="container" style="padding: 16px 16px 120px;">
+
+    <!-- Loading -->
+    <div id="loadingState">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Transactions -->
+    <div id="transactionsContent" style="display:none;">
+      <div class="section-header">
+        <span class="section-title" data-i18n="transactionsHeader">Transactions</span>
+        <span id="txnCount" style="color:var(--text-muted);font-size:0.8125rem;">0 entries</span>
+      </div>
+      <div class="transaction-list" id="transactionList"></div>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="empty-icon">💸</div>
+        <div class="empty-title" data-i18n="noTxnTitle">No transactions yet</div>
+        <div class="empty-desc" data-i18n="noTxnDesc">Tap the + button to record a transaction</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openAddTransaction()" title="Add Transaction">+</button>
+
+  <!-- Add Transaction Modal -->
+  <div class="modal-overlay" id="addTxnModal">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <h3 style="margin-bottom: 20px;" data-i18n="addTxnTitle">Add Transaction</h3>
+
+      <!-- Type Selector -->
+      <div class="type-selector">
+        <button class="type-btn gave active" id="btnGave" onclick="selectType('gave')" data-i18n="youGave">
+          💸 You Gave
+        </button>
+        <button class="type-btn got" id="btnGot" onclick="selectType('got')" data-i18n="youGot">
+          💰 You Got
+        </button>
+      </div>
+
+      <!-- Amount -->
+      <div class="form-group">
+        <label class="form-label" data-i18n="amountLabel">Amount (₹) *</label>
+        <div class="amount-input-wrapper">
+          <span class="currency-symbol">₹</span>
+          <input type="number" class="form-input" id="amountInput" placeholder="0" min="1" inputmode="decimal" />
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div class="form-group">
+        <label class="form-label" data-i18n="noteLabel">Note (optional)</label>
+        <input type="text" class="form-input" id="noteInput" placeholder="e.g. Rent, groceries, loan..." data-i18n-placeholder="notePlaceholder" maxlength="200" />
+      </div>
+
+      <!-- Date -->
+      <div class="form-group">
+        <label class="form-label" data-i18n="dateLabel">Date</label>
+        <input type="date" class="form-input" id="dateInput" />
+      </div>
+
+      <!-- Error -->
+      <div class="alert alert-error" id="txnError" style="display:none; margin-bottom:16px;">
+        <span>⚠</span> <span id="txnErrorMsg">Amount is required.</span>
+      </div>
+
+      <!-- Buttons -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button class="btn btn-ghost" onclick="closeAddTransaction()" data-i18n="cancel">Cancel</button>
+        <button class="btn btn-primary" id="addTxnBtn" onclick="addTransaction()" data-i18n="addEntryBtn">Add Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div style="text-align:center; margin-bottom: 24px;">
+        <div style="font-size:3rem; margin-bottom:12px;">⚠️</div>
+        <h3 data-i18n="deleteContactTitle">Delete Contact?</h3>
+        <p style="color:var(--text-secondary); font-size:0.875rem; margin-top:8px;" id="deleteContactName" data-i18n="deleteContactConfirm">
+          This will permanently delete this contact and all their transactions.
+        </p>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button class="btn btn-ghost" onclick="closeDeleteModal()" data-i18n="cancel">Cancel</button>
+        <button class="btn btn-danger" onclick="deleteContact()" data-i18n="delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/translations.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/contact.js"></script>
+  <script>
+    renderLangSelector('langContainer');
+  </script>
+</body>
+</html>

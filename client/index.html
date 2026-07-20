@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>KhataBook — Digital Ledger for Your Business</title>
+  <meta name="description" content="KhataBook is a free digital ledger app to manage credit and debit with your customers. Track who owes you and whom you owe." />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📒</text></svg>" />
+</head>
+<body>
+  <div class="page-center">
+    <div class="container">
+      <div class="card animate-fade-in-up" style="max-width: 420px; margin: 0 auto;">
+
+        <!-- Header with Logo & Language Selector -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px;">
+          <div class="logo animate-fade-in-up animate-delay-1" style="margin-bottom:0;">
+            <div class="logo-icon">📒</div>
+            <div>
+              <div class="logo-text" data-i18n="appTitle">KhataBook</div>
+              <div class="logo-tagline" data-i18n="tagline">Digital Ledger for Everyone</div>
+            </div>
+          </div>
+          <div id="langContainer"></div>
+        </div>
+
+        <!-- Hero text -->
+        <div style="margin: 28px 0 32px;" class="animate-fade-in-up animate-delay-2">
+          <h1 style="font-size: 1.875rem; margin-bottom: 10px;" data-i18n="heroTitle">
+            Manage your business money smarter
+          </h1>
+          <p style="color: var(--text-secondary); font-size: 0.9375rem; line-height: 1.7;" data-i18n="heroDesc">
+            Track credit and debit with customers, friends & family. Free, secure and always available.
+          </p>
+        </div>
+
+        <!-- Features -->
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px;" class="animate-fade-in-up animate-delay-3">
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 0.9rem; color: var(--text-secondary);">
+            <span style="color: var(--accent-green); font-size: 1.1rem;">✓</span>
+            <span data-i18n="feat1">Track who owes you and whom you owe</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 0.9rem; color: var(--text-secondary);">
+            <span style="color: var(--accent-green); font-size: 1.1rem;">✓</span>
+            <span data-i18n="feat2">Secured with your personal 4-digit PIN</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 0.9rem; color: var(--text-secondary);">
+            <span style="color: var(--accent-green); font-size: 1.1rem;">✓</span>
+            <span data-i18n="feat3">Instant sync across all your devices</span>
+          </div>
+        </div>
+
+        <!-- Google Login Button -->
+        <button class="btn btn-google" id="googleLoginBtn" onclick="loginWithGoogle()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+          <span data-i18n="googleLogin">Continue with Google</span>
+        </button>
+
+        <!-- Error alert -->
+        <div class="alert alert-error" id="errorAlert" style="display:none;">
+          <span>⚠</span>
+          <span id="errorMsg">Authentication failed. Please try again.</span>
+        </div>
+
+        <!-- Terms -->
+        <p style="text-align: center; margin-top: 24px; font-size: 0.8125rem; color: var(--text-muted); line-height: 1.6;" data-i18n="termsNotice">
+          By continuing, you agree to our Terms of Service<br>and Privacy Policy.
+        </p>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/translations.js"></script>
+  <script>
+    renderLangSelector('langContainer');
+    // Check if already authenticated
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success && data.user) {
+          if (!data.user.pinSet) {
+            window.location.replace('/setup-pin.html');
+          } else if (data.user.pinVerified && sessionStorage.getItem('khatabook_pin_verified') === 'true') {
+            window.location.replace('/dashboard.html');
+          } else {
+            await fetch('/api/auth/lock-pin', { method: 'POST', credentials: 'include' });
+            window.location.replace('/pin.html');
+          }
+        }
+      } catch (e) {
+        // Not logged in, stay on page
+      }
+
+      // Check for error query param
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('error') === 'auth_failed') {
+        const alert = document.getElementById('errorAlert');
+        alert.style.display = 'flex';
+        setTimeout(() => alert.classList.add('show'), 10);
+      }
+    })();
+
+    function loginWithGoogle() {
+      const btn = document.getElementById('googleLoginBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<div style="width:20px;height:20px;border:2px solid #ccc;border-top-color:#333;border-radius:50%;animation:spin 0.7s linear infinite;"></div> Connecting...`;
+      window.location.href = '/api/auth/google';
+    }
+  </script>
+</body>
+</html>
