@@ -13,19 +13,29 @@ router.get(
 
 // @route   GET /api/auth/google/callback
 // @desc    Google OAuth callback
-router.get(
-  '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/index.html?error=auth_failed' }),
-  (req, res) => {
-    // Successful login — check if PIN is set
-    if (!req.user.pinSet) {
-      // First time login — redirect to set up PIN
-      return res.redirect('/setup-pin.html');
+router.get('/google/callback', (req, res, next) => {
+  passport.authenticate('google', (err, user, info) => {
+    if (err) {
+      console.error('❌ Google Auth Callback Error:', err);
+      return res.redirect('/index.html?error=auth_failed');
     }
-    // Returning user — redirect to PIN verification
-    res.redirect('/pin.html');
-  }
-);
+    if (!user) {
+      console.warn('⚠️ Google Auth Failed - No User Returned:', info);
+      return res.redirect('/index.html?error=auth_failed');
+    }
+    req.logIn(user, (loginErr) => {
+      if (loginErr) {
+        console.error('❌ Login Session Error:', loginErr);
+        return res.redirect('/index.html?error=auth_failed');
+      }
+      // Successful login — check if PIN is set
+      if (!req.user.pinSet) {
+        return res.redirect('/setup-pin.html');
+      }
+      res.redirect('/pin.html');
+    });
+  })(req, res, next);
+});
 
 // @route   POST /api/auth/setup-pin
 // @desc    Set 4-digit PIN for the first time
